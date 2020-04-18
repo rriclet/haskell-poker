@@ -1,10 +1,10 @@
 module Hands ( bestHand
              , royalFlush
+             , straightFlush
              , handAndCardsLeft
              , flush
              , straight
              , highCard
-             , bySuit
 ) where
 
 import Cards
@@ -21,7 +21,7 @@ bestHand :: [Card] -> (Hand, [Card])
 bestHand xs
   | null xs        = (None, [])
   | length rf == 5 = (RoyalFlush, rf)
-  -- Straight Flush
+  | length sf == 5 = (StraightFlush, sf)
   | length fk == 5 = (FourOfKind, fk)
   | length fh == 5 = (FullHouse, fh)
   | length fl == 5 = (Flush, fl)
@@ -31,6 +31,7 @@ bestHand xs
   | length op == 5 = (OnePair, op)
   | otherwise      = (HighCard, hc)
     where rf  = royalFlush xs
+          sf  = straightFlush xs
           fk  = fst (partial 4) ++ highCard 1 (snd $ partial 4)
           fh  = fst tk' ++ fst (handAndCardsLeft (snd tk') 2)
           fl  = flush xs
@@ -54,24 +55,31 @@ handAndCardsLeft xs n = (hand, xs \\ hand)
 flush :: [Card] -> [Card]
 flush = take 5 . concat . sortOn (Down . length) . filter (\x -> length x >= 5) . bySuit . sortOn (Down . value)
 
+straightFlush :: [Card] -> [Card]
+straightFlush = straight' True 
+
 straight :: [Card] -> [Card]
-straight = foldl straightFold [] . copyAces .  sortOn (Down . value)
+straight = straight' False
+
+straight' :: Bool -> [Card] -> [Card]
+straight' f = foldl straightFold [] . copyAces .  sortOn (Down . value)
+  where straightFold l c
+          | null l              = [c]
+          | isSameOrEnded       = l
+          | canAdd              = c : l
+          | otherwise           = [c]
+          where lastValue     = value (head l)
+                isSameOrEnded = value c == lastValue || length l == 5
+                canAdd        = if f then flush else notFlush
+                flush         = suit c == suit (head l) && notFlush
+                notFlush      = isSucc || canAddAce
+                isAce         = value c == Ace  
+                isSucc        = not isAce && succ (value c) == lastValue 
+                canAddAce     = isAce && length l == 4 && lastValue == Two
 
 -- we copy Ace's to the end to get Straight's like A2345
 copyAces :: [Card] -> [Card]
 copyAces xs = xs ++ filter (\x -> value x == Ace) xs
-
-straightFold :: [Card] -> Card -> [Card]
-straightFold l c
-  | null l              = [c]
-  | isSameOrEnded       = l
-  | isSucc || canAddAce = c : l
-  | otherwise           = [c]
-  where lastValue     = value (head l)
-        isSameOrEnded = value c == lastValue || length l == 5
-        isAce         = value c == Ace  
-        isSucc        = not isAce && succ (value c) == lastValue
-        canAddAce     = isAce && length l == 4 && lastValue == Two
 
 highCard :: Int -> [Card] -> [Card]
 highCard n = take n . sortOn (Down . value) 
