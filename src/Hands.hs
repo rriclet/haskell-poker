@@ -1,9 +1,8 @@
 module Hands ( bestHand
              , royalFlush
              , handAndCardsLeft
+             , flush
              , straight
-             , straightFold
-             , copyAces
              , highCard
              , bySuit
 ) where
@@ -25,7 +24,7 @@ bestHand xs
   -- Straight Flush
   | length fk == 5 = (FourOfKind, fk)
   | length fh == 5 = (FullHouse, fh)
-  -- Flush
+  | length fl == 5 = (Flush, fl)
   | length st == 5 = (Straight, st)
   | length tk == 5 = (ThreeOfKind, tk)
   | length tp == 5 = (TwoPair, tp)
@@ -34,6 +33,7 @@ bestHand xs
     where rf  = royalFlush xs
           fk  = fst (partial 4) ++ highCard 1 (snd $ partial 4)
           fh  = fst tk' ++ fst (handAndCardsLeft (snd tk') 2)
+          fl  = flush xs
           st  = straight xs
           tk  = fst tk' ++ highCard 2 (snd tk')
           tk' = partial 3
@@ -50,6 +50,9 @@ royalFlush = take 5 . concat . filter (\x -> length x == 5) . map (filter $ valu
 handAndCardsLeft :: [Card] -> Int -> ([Card], [Card])
 handAndCardsLeft xs n = (hand, xs \\ hand) 
                           where hand = take n $ concat $ filter (\x -> length x >= n) $ byValue xs
+
+flush :: [Card] -> [Card]
+flush = take 5 . concat . sortOn (Down . length) . filter (\x -> length x >= 5) . bySuit . sortOn (Down . value)
 
 straight :: [Card] -> [Card]
 straight = foldl straightFold [] . copyAces .  sortOn (Down . value)
