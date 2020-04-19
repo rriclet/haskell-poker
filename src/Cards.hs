@@ -1,4 +1,10 @@
-module Cards where
+module Cards 
+( Value(..)
+, Suit(..)
+, Card(..)
+, Deck
+, deck
+) where
 
 data Value = Two | Three | Four | Five | Six 
            | Seven | Eight | Nine | Ten

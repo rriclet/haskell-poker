@@ -1,10 +1,16 @@
-module Hands ( bestHand
-             , royalFlush
-             , straightFlush
-             , handAndCardsLeft
-             , flush
-             , straight
-             , highCard
+module Hands 
+( Hand(..)
+, bestHand
+, royalFlush
+, straightFlush
+, fourOfKind
+, fullHouse
+, flush
+, straight
+, threeOfKind
+, twoPair
+, onePair
+, highCard
 ) where
 
 import Cards
@@ -32,31 +38,30 @@ bestHand xs
   | otherwise      = (HighCard, hc)
     where rf  = royalFlush xs
           sf  = straightFlush xs
-          fk  = fst (partial 4) ++ highCard 1 (snd $ partial 4)
-          fh  = fst tk' ++ fst (handAndCardsLeft (snd tk') 2)
+          fk  = fourOfKind xs
+          fh  = fullHouse xs
           fl  = flush xs
           st  = straight xs
-          tk  = fst tk' ++ highCard 2 (snd tk')
-          tk' = partial 3
-          tp  = fst op' ++ fst tp' ++ highCard 1 (snd tp')
-          tp' = handAndCardsLeft (snd op') 2
-          op  = fst op' ++ highCard 3 (snd op')
-          op' = partial 2
+          tk  = threeOfKind xs
+          tp  = twoPair xs
+          op  = onePair xs
           hc  = highCard 5 xs
-          partial = handAndCardsLeft xs
 
 royalFlush :: [Card] -> [Card]
 royalFlush = take 5 . concat . filter (\x -> length x == 5) . map (filter $ valueOrHigher Ten) . bySuit
 
-handAndCardsLeft :: [Card] -> Int -> ([Card], [Card])
-handAndCardsLeft xs n = (hand, xs \\ hand) 
-                          where hand = take n $ concat $ filter (\x -> length x >= n) $ byValue xs
+straightFlush :: [Card] -> [Card]
+straightFlush = straight' True 
+
+fourOfKind :: [Card] -> [Card]
+fourOfKind xs = fst fkAndLeft ++ highCard 1 (snd fkAndLeft)
+              where fkAndLeft = handAndCardsLeft xs 4
+
+fullHouse :: [Card] -> [Card]
+fullHouse xs = fst (threeOfKind' xs) ++ fst (onePair' (snd $ threeOfKind' xs))
 
 flush :: [Card] -> [Card]
 flush = take 5 . concat . sortOn (Down . length) . filter (\x -> length x >= 5) . bySuit . sortOn (Down . value)
-
-straightFlush :: [Card] -> [Card]
-straightFlush = straight' True 
 
 straight :: [Card] -> [Card]
 straight = straight' False
@@ -81,8 +86,26 @@ straight' f = foldl straightFold [] . copyAces .  sortOn (Down . value)
 copyAces :: [Card] -> [Card]
 copyAces xs = xs ++ filter (\x -> value x == Ace) xs
 
+threeOfKind :: [Card] -> [Card]
+threeOfKind xs = fst (threeOfKind' xs) ++ highCard 2 (snd $ threeOfKind' xs)
+threeOfKind' :: [Card] -> ([Card], [Card])
+threeOfKind' xs = handAndCardsLeft xs 3
+
+twoPair :: [Card] -> [Card]
+twoPair xs = fst (onePair' xs) ++ fst secondPair ++ highCard 1 (snd secondPair)
+              where secondPair = onePair' (snd $ onePair' xs)
+
+onePair :: [Card] -> [Card]
+onePair xs = fst (onePair' xs) ++ highCard 3 (snd $ onePair' xs)
+onePair' :: [Card] -> ([Card], [Card])
+onePair' xs = handAndCardsLeft xs 2
+
 highCard :: Int -> [Card] -> [Card]
 highCard n = take n . sortOn (Down . value) 
+
+handAndCardsLeft :: [Card] -> Int -> ([Card], [Card])
+handAndCardsLeft xs n = (hand, xs \\ hand) 
+                          where hand = take n $ concat $ filter (\x -> length x >= n) $ byValue xs
 
 bySuit :: [Card] -> [[Card]]
 bySuit xs = [ [ x | x <- xs, suit x == s ] | s <- [Clubs .. Spades] ]
