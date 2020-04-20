@@ -20,32 +20,28 @@ import Data.Ord
 data Hand = None | HighCard | OnePair | TwoPair | ThreeOfKind 
            | Straight | Flush | FullHouse | FourOfKind 
            | StraightFlush | RoyalFlush 
-  deriving (Show, Eq, Ord)
+  deriving (Show, Enum, Eq, Ord)
 
 -- If multiple equal hands, gives them in Suit Enum order
 bestHand :: [Card] -> (Hand, [Card])
-bestHand xs
-  | null xs       = (None, [])
-  | not (null rf) = (RoyalFlush, rf)
-  | not (null sf) = (StraightFlush, sf)
-  | not (null fk) = (FourOfKind, fk)
-  | not (null fh) = (FullHouse, fh)
-  | not (null fl) = (Flush, fl)
-  | not (null st) = (Straight, st)
-  | not (null tk) = (ThreeOfKind, tk)
-  | not (null tp) = (TwoPair, tp)
-  | not (null op) = (OnePair, op)
-  | otherwise     = (HighCard, hc)
-    where rf = royalFlush xs
-          sf = straightFlush xs
-          fk = fourOfKind xs
-          fh = fullHouse xs
-          fl = flush xs
-          st = straight xs
-          tk = threeOfKind xs
-          tp = twoPair xs
-          op = onePair xs
-          hc = highCard 5 xs
+bestHand = bestHand' (reverse [HighCard .. RoyalFlush])
+
+bestHand' :: [Hand] -> [Card] -> (Hand, [Card])
+bestHand' (h:hs) c = if null best then bestHand' hs c else (h, best)
+                      where best = fHand h c
+
+fHand :: Hand -> ([Card] -> [Card])
+fHand h = case h of 
+               RoyalFlush -> royalFlush
+               StraightFlush -> straightFlush
+               FourOfKind -> fourOfKind
+               FullHouse -> fullHouse
+               Flush -> flush
+               Straight -> straight
+               ThreeOfKind -> threeOfKind
+               TwoPair -> twoPair
+               OnePair -> onePair
+               _ -> highCard 5
 
 royalFlush :: [Card] -> [Card]
 royalFlush xs = if sumStraight == sumRoyal then straightFlush xs else []
@@ -66,7 +62,7 @@ fullHouse xs = if not (null tk || null op) then tk ++ op else []
                       op = take 2 $ onePair $ xs \\ tk
 
 flush :: [Card] -> [Card]
-flush = enoughOrEmpty 5 . concat . sortOn (Down . length) . filter (\x -> length x >= 5) . bySuit . sortOn (Down . value)
+flush = enoughOrEmpty 5 . concat . sortOn (Down . value . head) . filter (\x -> length x >= 5) . bySuit . sortOn (Down . value)
 
 straight :: [Card] -> [Card]
 straight = enoughOrEmpty 5 . foldl straightFold [] . copyAces . nubBy sameValue . sortOn (Down . value)
