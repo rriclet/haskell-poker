@@ -25,92 +25,80 @@ data Hand = None | HighCard | OnePair | TwoPair | ThreeOfKind
 -- If multiple equal hands, gives them in Suit Enum order
 bestHand :: [Card] -> (Hand, [Card])
 bestHand xs
-  | null xs        = (None, [])
-  | fiveCards rf = (RoyalFlush, rf)
-  | fiveCards sf = (StraightFlush, sf)
-  | fiveCards fk = (FourOfKind, fk)
-  | fiveCards fh = (FullHouse, fh)
-  | fiveCards fl = (Flush, fl)
-  | fiveCards st = (Straight, st)
-  | fiveCards tk = (ThreeOfKind, tk)
-  | fiveCards tp = (TwoPair, tp)
-  | fiveCards op = (OnePair, op)
-  | otherwise      = (HighCard, hc)
-    where fiveCards x = length x == 5 
-          rf  = royalFlush xs
-          sf  = straightFlush xs
-          fk  = fourOfKind xs
-          fh  = fullHouse xs
-          fl  = flush xs
-          st  = straight xs
-          tk  = threeOfKind xs
-          tp  = twoPair xs
-          op  = onePair xs
-          hc  = highCard 5 xs
+  | null xs       = (None, [])
+  | not (null rf) = (RoyalFlush, rf)
+  | not (null sf) = (StraightFlush, sf)
+  | not (null fk) = (FourOfKind, fk)
+  | not (null fh) = (FullHouse, fh)
+  | not (null fl) = (Flush, fl)
+  | not (null st) = (Straight, st)
+  | not (null tk) = (ThreeOfKind, tk)
+  | not (null tp) = (TwoPair, tp)
+  | not (null op) = (OnePair, op)
+  | otherwise     = (HighCard, hc)
+    where rf = royalFlush xs
+          sf = straightFlush xs
+          fk = fourOfKind xs
+          fh = fullHouse xs
+          fl = flush xs
+          st = straight xs
+          tk = threeOfKind xs
+          tp = twoPair xs
+          op = onePair xs
+          hc = highCard 5 xs
 
 royalFlush :: [Card] -> [Card]
-royalFlush = take 5 . sortOn value . concat . filter (\x -> length x == 5) . map (filter $ valueOrHigher Ten) . bySuit
+royalFlush xs = if sumStraight == sumRoyal then straightFlush xs else []
+                  where sumRoyal    = sum $ map fromEnum [Ace,King,Queen,Jack,Ten]
+                        sumStraight = sum $ map (fromEnum . value) $ straightFlush xs 
 
 straightFlush :: [Card] -> [Card]
-straightFlush = straight' True 
+straightFlush = concat . take 1 . sortOn (Down . value . head) . map straight . filter (\x -> length x >= 5) . bySuit . sortOn value
 
 fourOfKind :: [Card] -> [Card]
-fourOfKind xs = fst fkAndLeft ++ highCard 1 (snd fkAndLeft)
-              where fkAndLeft = handAndCardsLeft 4 xs
+fourOfKind xs = if not (null fk) then fk ++ hc else []
+                  where fk = nSameCards 4 xs
+                        hc = highCard 1 $ xs \\ fk
 
 fullHouse :: [Card] -> [Card]
-fullHouse xs = fst (threeOfKind' xs) ++ fst (onePair' (snd $ threeOfKind' xs))
+fullHouse xs = if not (null tk || null op) then tk ++ op else []
+                where tk = take 3 $ threeOfKind xs
+                      op = take 2 $ onePair $ xs \\ tk
 
 flush :: [Card] -> [Card]
-flush = take 5 . concat . sortOn (Down . length) . filter (\x -> length x >= 5) . bySuit . sortOn (Down . value)
+flush = enoughOrEmpty 5 . concat . sortOn (Down . length) . filter (\x -> length x >= 5) . bySuit . sortOn (Down . value)
 
 straight :: [Card] -> [Card]
-straight = straight' False
-
-straight' :: Bool -> [Card] -> [Card]
-straight' flush = foldl straightFold [] . copyAces .  sortOn (Down . value)
-  where straightFold l c
-          | null l                  = [c]
-          | ended                   = l
-          | same value && not flush = l
-          | same value && flush     = l
-          | addCard                 = c : l
-          | otherwise               = [c]
-          where last           = head l
-                same f         = f c == f last
-                ended          = length l == 5
-                addCard        = (canAdd && not flush) || (canAddFlush && flush)  
-                canAdd         = isSucc || canAddAce 
-                canAddFlush    = canAdd && same suit
-                isSucc         = not isAce && succ (value c) == value last
-                canAddAce      = isAce && length l == 4 && value last == Two
-                isAce          = value c == Ace  
+straight = enoughOrEmpty 5 . foldl straightFold [] . copyAces . nubBy sameValue . sortOn (Down . value)
+straightFold l c
+          | null l        = [c]
+          | length l == 5 = l
+          | canAdd        = c : l
+          | otherwise     = [c]           
+          where canAdd = after (value c) == value (head l) 
 
 -- we copy Ace's to the end to get Straight's like A2345
 copyAces :: [Card] -> [Card]
 copyAces xs = xs ++ filter (\x -> value x == Ace) xs
 
 threeOfKind :: [Card] -> [Card]
-threeOfKind xs = fst (threeOfKind' xs) ++ highCard 2 (snd $ threeOfKind' xs)
-threeOfKind' :: [Card] -> ([Card], [Card])
-threeOfKind' = handAndCardsLeft 3
+threeOfKind xs = if not (null tk) then tk ++ hc else []
+                  where tk = nSameCards 3 xs
+                        hc = highCard 2 $ xs \\ tk
 
 twoPair :: [Card] -> [Card]
-twoPair xs = fst firstPair ++ fst secondPair ++ highCard 1 (snd secondPair)
-              where firstPair  = onePair' xs
-                    secondPair = onePair' (snd firstPair)
+twoPair xs = if not (null tp1 || null tp2) then tp1 ++ tp2 ++ hc else []
+                where tp1 = take 2 $ onePair xs
+                      tp2 = take 2 $ onePair (xs \\ tp1)                      
+                      hc = highCard 1 $ xs \\ (tp1 ++ tp2)
 
 onePair :: [Card] -> [Card]
-onePair xs = fst (onePair' xs) ++ highCard 3 (snd $ onePair' xs)
-onePair' :: [Card] -> ([Card], [Card])
-onePair' = handAndCardsLeft 2
+onePair xs = if not (null op) then op ++ hc else []
+                where op = nSameCards 2 xs
+                      hc = highCard 3 $ xs \\ op
 
 highCard :: Int -> [Card] -> [Card]
 highCard n = take n . sortOn (Down . value) 
-
-handAndCardsLeft :: Int -> [Card] -> ([Card], [Card])
-handAndCardsLeft n xs = (hand, xs \\ hand) 
-                          where hand = take n $ concat $ filter (\x -> length x >= n) $ byValue xs
 
 bySuit :: [Card] -> [[Card]]
 bySuit xs = [ [ x | x <- xs, suit x == s ] | s <- [Clubs .. Spades] ]
@@ -118,5 +106,11 @@ bySuit xs = [ [ x | x <- xs, suit x == s ] | s <- [Clubs .. Spades] ]
 byValue :: [Card] -> [[Card]]
 byValue xs = reverse [ [ x | x <- xs, value x == v ] | v <- [Two .. Ace] ]
 
-valueOrHigher :: Value -> Card -> Bool
-valueOrHigher v c = value c >= v
+nSameCards :: Int -> [Card] -> [Card]
+nSameCards n = enoughOrEmpty n . concat . take 1 . sortOn (Down . value . head) . filter (\x -> length x >= n) . groupBy sameValue . sortOn value
+
+sameValue :: Card -> Card -> Bool
+sameValue x y = value x == value y
+
+enoughOrEmpty :: Int -> [a] -> [a]
+enoughOrEmpty n xs = if length xs >= n then take n xs else []
