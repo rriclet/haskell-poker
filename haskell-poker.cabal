@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Cards, Hands
+  exposed-modules:     Cards, Hands, CardParser
   build-depends:       base >= 4.7 && < 5
   default-language:    Haskell2010
 
@@ -33,6 +33,7 @@ test-suite haskell-poker-test
   main-is:             Spec.hs
   other-modules:       CardsSpec
                        HandsSpec
+                       CardParserSpec
   build-depends:       base
                      , haskell-poker
                      , hspec

@@ -26,17 +26,18 @@ data Hand = None | HighCard | OnePair | TwoPair | ThreeOfKind
 bestHand :: [Card] -> (Hand, [Card])
 bestHand xs
   | null xs        = (None, [])
-  | length rf == 5 = (RoyalFlush, rf)
-  | length sf == 5 = (StraightFlush, sf)
-  | length fk == 5 = (FourOfKind, fk)
-  | length fh == 5 = (FullHouse, fh)
-  | length fl == 5 = (Flush, fl)
-  | length st == 5 = (Straight, st)
-  | length tk == 5 = (ThreeOfKind, tk)
-  | length tp == 5 = (TwoPair, tp)
-  | length op == 5 = (OnePair, op)
+  | fiveCards rf = (RoyalFlush, rf)
+  | fiveCards sf = (StraightFlush, sf)
+  | fiveCards fk = (FourOfKind, fk)
+  | fiveCards fh = (FullHouse, fh)
+  | fiveCards fl = (Flush, fl)
+  | fiveCards st = (Straight, st)
+  | fiveCards tk = (ThreeOfKind, tk)
+  | fiveCards tp = (TwoPair, tp)
+  | fiveCards op = (OnePair, op)
   | otherwise      = (HighCard, hc)
-    where rf  = royalFlush xs
+    where fiveCards x = length x == 5 
+          rf  = royalFlush xs
           sf  = straightFlush xs
           fk  = fourOfKind xs
           fh  = fullHouse xs
@@ -48,14 +49,14 @@ bestHand xs
           hc  = highCard 5 xs
 
 royalFlush :: [Card] -> [Card]
-royalFlush = take 5 . concat . filter (\x -> length x == 5) . map (filter $ valueOrHigher Ten) . bySuit
+royalFlush = take 5 . sortOn value . concat . filter (\x -> length x == 5) . map (filter $ valueOrHigher Ten) . bySuit
 
 straightFlush :: [Card] -> [Card]
 straightFlush = straight' True 
 
 fourOfKind :: [Card] -> [Card]
 fourOfKind xs = fst fkAndLeft ++ highCard 1 (snd fkAndLeft)
-              where fkAndLeft = handAndCardsLeft xs 4
+              where fkAndLeft = handAndCardsLeft 4 xs
 
 fullHouse :: [Card] -> [Card]
 fullHouse xs = fst (threeOfKind' xs) ++ fst (onePair' (snd $ threeOfKind' xs))
@@ -67,20 +68,23 @@ straight :: [Card] -> [Card]
 straight = straight' False
 
 straight' :: Bool -> [Card] -> [Card]
-straight' f = foldl straightFold [] . copyAces .  sortOn (Down . value)
+straight' flush = foldl straightFold [] . copyAces .  sortOn (Down . value)
   where straightFold l c
-          | null l              = [c]
-          | isSameOrEnded       = l
-          | canAdd              = c : l
-          | otherwise           = [c]
-          where lastValue     = value (head l)
-                isSameOrEnded = value c == lastValue || length l == 5
-                canAdd        = if f then flush else notFlush
-                flush         = suit c == suit (head l) && notFlush
-                notFlush      = isSucc || canAddAce
-                isAce         = value c == Ace  
-                isSucc        = not isAce && succ (value c) == lastValue 
-                canAddAce     = isAce && length l == 4 && lastValue == Two
+          | null l                  = [c]
+          | ended                   = l
+          | same value && not flush = l
+          | same value && flush     = l
+          | addCard                 = c : l
+          | otherwise               = [c]
+          where last           = head l
+                same f         = f c == f last
+                ended          = length l == 5
+                addCard        = (canAdd && not flush) || (canAddFlush && flush)  
+                canAdd         = isSucc || canAddAce 
+                canAddFlush    = canAdd && same suit
+                isSucc         = not isAce && succ (value c) == value last
+                canAddAce      = isAce && length l == 4 && value last == Two
+                isAce          = value c == Ace  
 
 -- we copy Ace's to the end to get Straight's like A2345
 copyAces :: [Card] -> [Card]
@@ -89,22 +93,23 @@ copyAces xs = xs ++ filter (\x -> value x == Ace) xs
 threeOfKind :: [Card] -> [Card]
 threeOfKind xs = fst (threeOfKind' xs) ++ highCard 2 (snd $ threeOfKind' xs)
 threeOfKind' :: [Card] -> ([Card], [Card])
-threeOfKind' xs = handAndCardsLeft xs 3
+threeOfKind' = handAndCardsLeft 3
 
 twoPair :: [Card] -> [Card]
-twoPair xs = fst (onePair' xs) ++ fst secondPair ++ highCard 1 (snd secondPair)
-              where secondPair = onePair' (snd $ onePair' xs)
+twoPair xs = fst firstPair ++ fst secondPair ++ highCard 1 (snd secondPair)
+              where firstPair  = onePair' xs
+                    secondPair = onePair' (snd firstPair)
 
 onePair :: [Card] -> [Card]
 onePair xs = fst (onePair' xs) ++ highCard 3 (snd $ onePair' xs)
 onePair' :: [Card] -> ([Card], [Card])
-onePair' xs = handAndCardsLeft xs 2
+onePair' = handAndCardsLeft 2
 
 highCard :: Int -> [Card] -> [Card]
 highCard n = take n . sortOn (Down . value) 
 
-handAndCardsLeft :: [Card] -> Int -> ([Card], [Card])
-handAndCardsLeft xs n = (hand, xs \\ hand) 
+handAndCardsLeft :: Int -> [Card] -> ([Card], [Card])
+handAndCardsLeft n xs = (hand, xs \\ hand) 
                           where hand = take n $ concat $ filter (\x -> length x >= n) $ byValue xs
 
 bySuit :: [Card] -> [[Card]]
