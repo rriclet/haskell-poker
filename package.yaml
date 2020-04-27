@@ -1,0 +1,36 @@
+name: haskell-poker
+github: rriclet/haskell-poker
+license: MIT
+license-file: LICENSE
+author: Robin Riclet
+maintainer: robinriclet@gmail.com
+
+ghc-options: -Wall
+
+dependencies:
+  - base >= 4.9 && < 5
+
+library:
+  source-dirs: src
+  exposed-modules: 
+    - Cards
+    - Hands
+    - CardParser
+
+executables:
+  haskell-poker:
+    main: Main.hs
+    source-dirs: app
+    dependencies: haskell-poker
+
+tests:
+  spec:
+    main: Main.hs
+    source-dirs: test
+    other-modules: 
+      - Test.Cards
+      - Test.Hands
+      - Test.CardParser
+    dependencies:
+      - QuickCheck
+      - haskell-poker

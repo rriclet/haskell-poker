@@ -11,6 +11,7 @@ module Hands
 , twoPair
 , onePair
 , highCard
+, isRoyal
 ) where
 
 import Cards
@@ -29,6 +30,7 @@ bestHand = bestHand' (reverse [HighCard .. RoyalFlush])
 bestHand' :: [Hand] -> [Card] -> (Hand, [Card])
 bestHand' (h:hs) c = if null best then bestHand' hs c else (h, best)
                       where best = fHand h c
+bestHand' _ _ = (None, [])
 
 fHand :: Hand -> ([Card] -> [Card])
 fHand h = case h of 
@@ -44,12 +46,11 @@ fHand h = case h of
                _ -> highCard 5
 
 royalFlush :: [Card] -> [Card]
-royalFlush xs = if sumStraight == sumRoyal then straightFlush xs else []
-                  where sumRoyal    = sum $ map fromEnum [Ace,King,Queen,Jack,Ten]
-                        sumStraight = sum $ map (fromEnum . value) $ straightFlush xs 
+royalFlush xs = let sf = straightFlush xs
+                in if isRoyal sf then sf else []  
 
 straightFlush :: [Card] -> [Card]
-straightFlush = concat . take 1 . sortOn (Down . value . head) . map straight . filter (\x -> length x >= 5) . bySuit . sortOn value
+straightFlush = concat . take 1 . sortOn (Down . value . head) . filter (not . null) . map straight . filter (\x -> length x >= 5) . bySuit . sortOn value
 
 fourOfKind :: [Card] -> [Card]
 fourOfKind xs = if not (null fk) then fk ++ hc else []
@@ -66,6 +67,8 @@ flush = enoughOrEmpty 5 . concat . sortOn (Down . value . head) . filter (\x -> 
 
 straight :: [Card] -> [Card]
 straight = enoughOrEmpty 5 . foldl straightFold [] . copyAces . nubBy sameValue . sortOn (Down . value)
+
+straightFold :: [Card] -> Card -> [Card]
 straightFold l c
           | null l        = [c]
           | length l == 5 = l
@@ -96,11 +99,11 @@ onePair xs = if not (null op) then op ++ hc else []
 highCard :: Int -> [Card] -> [Card]
 highCard n = take n . sortOn (Down . value) 
 
+isRoyal :: [Card] -> Bool
+isRoyal xs = sort (map value xs) == [Ten, Jack, Queen, King, Ace]
+
 bySuit :: [Card] -> [[Card]]
 bySuit xs = [ [ x | x <- xs, suit x == s ] | s <- [Clubs .. Spades] ]
-
-byValue :: [Card] -> [[Card]]
-byValue xs = reverse [ [ x | x <- xs, value x == v ] | v <- [Two .. Ace] ]
 
 nSameCards :: Int -> [Card] -> [Card]
 nSameCards n = enoughOrEmpty n . concat . take 1 . sortOn (Down . value . head) . filter (\x -> length x >= n) . groupBy sameValue . sortOn value

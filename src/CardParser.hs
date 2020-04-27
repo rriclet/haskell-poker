@@ -14,6 +14,7 @@ toCard (x1:x2:_)
   | otherwise                    = Just $ Card (fromJust mV) (fromJust mS)
     where mV = readValue x1
           mS = readSuit x2
+toCard _ = Nothing
 
 readValue :: Char -> Maybe Value
 readValue x = case x of

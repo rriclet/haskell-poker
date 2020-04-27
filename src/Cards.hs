@@ -29,9 +29,9 @@ data Suit = Clubs | Diamonds | Hearts | Spades
 data Card = Card { value :: Value, suit :: Suit }
   deriving (Eq, Ord)
 
-instance Show Card where show (Card value suit) = "Card " ++ show value ++ " " ++ show suit
+instance Show Card where show (Card v s) = "Card " ++ show v ++ " " ++ show s
 
 type Deck = [Card]
 
 deck :: Deck
-deck = [Card value suit | value <- [Two .. Ace], suit <- [Clubs .. Spades] ]
+deck = [Card v s | v <- [Two .. Ace], s <- [Clubs .. Spades] ]
