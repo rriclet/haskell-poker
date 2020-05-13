@@ -4,14 +4,9 @@ module Test.Hands where
 import Card
 import Hands
 import Test.QuickCheck
+import Test.Card
 import Data.List
 import Data.Ord
-
-instance Arbitrary Card where
-  arbitrary = do
-    v <- elements [Two .. Ace]
-    s <- elements [Clubs .. Spades]
-    return (Card v s)
 
 -- For OnePair / TwoPair / ThreeOfKind : missing test to check for highest value possible
 

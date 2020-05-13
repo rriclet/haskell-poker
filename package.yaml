@@ -36,6 +36,8 @@ tests:
     source-dirs: test
     other-modules: 
       - Test.Card
+      - Test.Common
+      - Test.Deal
       - Test.Hands
       - Test.CardParser
     dependencies:

@@ -2,7 +2,6 @@ module Deal
 ( Deal
 , Dealing
 , dealAllHole
-, dealHole
 ) where
 
 import Card
@@ -22,11 +21,11 @@ data Deal = Deal {
 type Dealing = ([(Player, Hole)], Deck)
 
 dealAllHole :: Deck -> [Player] -> Maybe Dealing
-dealAllHole d = foldr dealAllHole' (Just ([], d))
+dealAllHole d = foldl dealAllHole' (Just ([], d))
 
-dealAllHole' :: Player -> Maybe Dealing -> Maybe Dealing
-dealAllHole' p Nothing       = Nothing
-dealAllHole' p (Just (h, d)) = case dealHole d p of
+dealAllHole' :: Maybe Dealing -> Player -> Maybe Dealing
+dealAllHole' Nothing p       = Nothing
+dealAllHole' (Just (h, d)) p = case dealHole d p of
   Just (h', d') -> Just (h' : h, d')
   Nothing       -> Nothing
 
