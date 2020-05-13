@@ -1,6 +1,7 @@
 module Main where
 
-import Cards
+import Card
+import Deck
 
-main :: IO ()
-main = print $ show (Card Queen Spades)
+main :: IO Deck
+main = deck

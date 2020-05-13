@@ -1,11 +1,9 @@
-module Cards 
+module Card 
 ( Value(..)
 , before
 , after
 , Suit(..)
 , Card(..)
-, Deck
-, deck
 ) where
 
 data Value = Two | Three | Four | Five | Six 
@@ -30,8 +28,3 @@ data Card = Card { value :: Value, suit :: Suit }
   deriving (Eq, Ord)
 
 instance Show Card where show (Card v s) = "Card " ++ show v ++ " " ++ show s
-
-type Deck = [Card]
-
-deck :: Deck
-deck = [Card v s | v <- [Two .. Ace], s <- [Clubs .. Spades] ]

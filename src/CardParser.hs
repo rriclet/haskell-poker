@@ -2,19 +2,16 @@ module CardParser
 ( p
 ) where
 
-import Cards
+import Card
+import Control.Monad
 import Data.Maybe
 
 p :: [String] -> [Card]
 p = mapMaybe toCard 
 
 toCard :: String -> Maybe Card
-toCard (x1:x2:_)
-  | isNothing mV || isNothing mS = Nothing
-  | otherwise                    = Just $ Card (fromJust mV) (fromJust mS)
-    where mV = readValue x1
-          mS = readSuit x2
-toCard _ = Nothing
+toCard (x1:x2:_) = liftM2 Card (readValue x1) (readSuit x2)
+toCard _         = Nothing
 
 readValue :: Char -> Maybe Value
 readValue x = case x of

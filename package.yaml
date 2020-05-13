@@ -9,11 +9,15 @@ ghc-options: -Wall
 
 dependencies:
   - base >= 4.9 && < 5
+  - random
+  - random-shuffle 
+  - MonadRandom
 
 library:
   source-dirs: src
   exposed-modules: 
-    - Cards
+    - Card
+    - Deck
     - Hands
     - CardParser
 
@@ -28,7 +32,7 @@ tests:
     main: Main.hs
     source-dirs: test
     other-modules: 
-      - Test.Cards
+      - Test.Card
       - Test.Hands
       - Test.CardParser
     dependencies:

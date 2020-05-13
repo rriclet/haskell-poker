@@ -14,7 +14,7 @@ module Hands
 , isRoyal
 ) where
 
-import Cards
+import Card
 import Data.List 
 import Data.Ord
 

@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Test.Hands where
 
-import Cards
+import Card
 import Hands
 import Test.QuickCheck
 import Data.List

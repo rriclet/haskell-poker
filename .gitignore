@@ -1,3 +1,5 @@
+haskell-poker.cabal
+
 dist
 dist-*
 cabal-dev
