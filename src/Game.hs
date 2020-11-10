@@ -10,3 +10,4 @@ data Game = Game {
   winners :: [Player],
   deals :: [Deal]
 } deriving (Eq)
+

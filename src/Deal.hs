@@ -1,14 +1,17 @@
 module Deal
 ( Deal
-, Dealing
-, dealAllHole
+, dealHoleCards
 ) where
 
 import Card
 import Common
 import Deck
+import Control.Monad
+import Control.Monad.Random.Class
+import Data.Maybe
 
 data Deal = Deal {
+  deck :: Deck,
   players :: [(Player, Hole)],
   moves :: [Move],
   community :: [Card],
@@ -18,17 +21,17 @@ data Deal = Deal {
   winners :: [Player]
 } deriving (Eq)
 
-type Dealing = ([(Player, Hole)], Deck)
+{-
+play :: StartDeal -> Deal
+play sd = dealAllHole (deck sd) (players sd)
+-}
 
-dealAllHole :: Deck -> [Player] -> Maybe Dealing
-dealAllHole d = foldl dealAllHole' (Just ([], d))
-
-dealAllHole' :: Maybe Dealing -> Player -> Maybe Dealing
-dealAllHole' Nothing p       = Nothing
-dealAllHole' (Just (h, d)) p = case dealHole d p of
-  Just (h', d') -> Just (h' : h, d')
-  Nothing       -> Nothing
-
-dealHole :: Deck -> Player -> Maybe ((Player, Hole), Deck)
-dealHole (x1:x2:xs) p = Just ((p, (x1, x2)), xs)
-dealHole _ p          = Nothing
+dealHoleCards :: Deck -> [Player] -> ([(Player, Hole)], Deck)
+dealHoleCards deck players = (playersWithCards, rest)
+  where 
+    playersWithCards = zip players holeCards
+    holeCards        = zip firstN nextN
+    firstN           = take n deck
+    nextN            = take n . drop n $ deck
+    rest             = drop (n * 2) deck
+    n                = length players
